@@ -33,7 +33,7 @@ class CloudWatchBasics(EutesterTestCase):
         start = end - datetime.timedelta(**kwargs)
         return (start,end)
 
-    def print_timeseries_for_graphite(timeseries):
+    def print_timeseries_for_graphite(self, timeseries):
             for datapoint in timeseries:
                 print "graph.Namespace-1361426618 " + str(int(datapoint['Average'])) + " " + \
                       str((datapoint['Timestamp'] - datetime.datetime(1970,1,1)).total_seconds())
