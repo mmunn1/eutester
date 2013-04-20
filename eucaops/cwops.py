@@ -31,6 +31,7 @@
 # Author: vic.iglesias@eucalyptus.com
 import re
 import copy
+import time
 from boto.ec2.regioninfo import RegionInfo
 import boto
 from eutester import Eutester
@@ -43,6 +44,37 @@ CWRegionData = {
     'ap-northeast-1': 'monitoring.ap-northeast-1.amazonaws.com',
     'ap-southeast-1': 'monitoring.ap-southeast-1.amazonaws.com'}
 
+DimensionArray      = ['AutoScalingGroupName', 'ImageId', 'InstanceId', 'InstanceType']
+
+StatsArray          = ['Average', 'Sum', 'Maximum', 'Minimum','SampleCount']
+
+InstanceMetricArray = [
+                      ['CPUUtilization','Percent'],
+                      ['DiskReadOps',   'Count'],
+                      ['DiskWriteOps',  'Count'],
+                      ['DiskReadBytes', 'Bytes'],
+                      ['DiskWriteBytes','Bytes'],
+                      ['NetworkIn',     'Bytes'],
+                      ['NetworkOut',    'Bytes']
+                      ]
+
+StatusMetricArray   = [
+                      ['StatusCheckFailed',         'Count'],
+                      ['StatusCheckFailed_Instance','Count'],
+                      ['StatusCheckFailed_System',  'Count']
+                      ]
+EbsMetricsArray     = [
+                      ['VolumeReadBytes','Bytes'],
+                      ['VolumeWriteBytes','Bytes'],
+                      ['VolumeReadOps','Count'],
+                      ['VolumeWriteOps','Count'],
+                      ['VolumeTotalReadTime','Seconds'],
+                      ['VolumeTotalWriteTime','Seconds'],
+                      ['VolumeIdleTime','Seconds'],
+                      ['VolumeQueueLength','Count'],
+                      ['VolumeThroughputPercentage','Percent'],
+                      ['VolumeConsumedReadWriteOps','Count']
+                      ]
 
 class CWops(Eutester):
     @Eutester.printinfo
@@ -163,3 +195,40 @@ class CWops(Eutester):
             else:
                 namespaces[metric.namespace].append(metric)
         return namespaces
+
+    def list_metrics( self, next_token=None, dimensions=None, metric_name=None, namespace=None ):
+        self.debug("Calling list_metrics( {p1}, {p2}, {p3}, {p4} )".format(p1=next_token, p2=dimensions, p3=metric_name, p4=namespace))
+        return self.cw.list_metrics(next_token , dimensions, metric_name, namespace)
+
+    def get_metric_statistics( self, period, start_time, end_time, metric_name, namespace, statistics, dimensions=None, unit=None):
+        self.debug("Calling get_metric_statistics( {p1}, {p2}, {p3}, {p4}, {p5}, {p6}, {p7}, {p8} )".format(
+                   p1=period, p2=start_time, p3=end_time, p4=metric_name, p5=namespace, p6=statistics, p7=dimensions, p8=unit))
+        return self.cw.get_metric_statistics(period, start_time, end_time, metric_name, namespace, statistics, dimensions, unit)
+
+    def put_metric_data( self, namespace, name, value=None, timestamp=None, unit=None, dimensions=None, statistics=None):
+        self.debug("Calling put_metric_data( {p1}, {p2}, {p3}, {p4}, {p5}, {p6}, {p7} )".format(
+                   p1=namespace, p2=name, p3=value, p4=timestamp, p5=unit, p6=dimensions, p7=dimensions))
+        return self.cw.put_metric_data(namespace, name, value, timestamp, unit, dimensions, statistics)
+
+    def wait_for_monitoring(self, total):
+        while (total > 0):
+            minutes=total/60
+            seconds=total%60
+            self.debug("Waiting for metrics to populate " + str(minutes) + " Minutes " + str(seconds) + " Seconds remaining.")
+            time.sleep(10)
+            total= total - 10
+
+    def get_dimension_array(self):
+        return DimensionArray
+
+    def get_stats_array(self):
+        return StatsArray
+
+    def get_instance_metrics_array(self):
+        return InstanceMetricArray
+
+    def get_status_metric_array(self):
+        return StatusMetricArray
+
+    def get_ebs_metrin_array(self):
+        return EbsMetricsArray

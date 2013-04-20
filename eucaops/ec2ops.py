@@ -630,6 +630,13 @@ class EC2ops(Eutester):
         return retlist
     
     
+    def monitor_instance_enable(self, instance):
+        try:
+            self.ec2.monitor_instances(str(instance.id))
+            self.debug("monitoring-enabled for instance = " + instance.id)
+        except Exception, e:
+            self.debug("monitoring-enabled Failed for instance = " + instance.id + " Error:" + str(e))
+
     @Eutester.printinfo
     def monitor_created_euvolumes_to_state(self,
                                            volumes,
@@ -2166,7 +2173,8 @@ class EC2ops(Eutester):
                      username="root",
                      password=None,
                      is_reachable=True,
-                     timeout=480):
+                     timeout=480,
+                     monitoring_enabled=False):
         """
         Run instance/s and wait for them to go to the running state
 
@@ -2205,13 +2213,17 @@ class EC2ops(Eutester):
             if isinstance(keypair, KeyPair):
                 keypair = keypair.name
         
+        if monitoring_enabled :
+            enabled=True
+        else:
+            enabled=False
+
         start = time.time()
             
         self.debug( "Attempting to run "+ str(image.root_device_type)  +" image " + str(image) + " in group " + str(group))
         reservation = image.run(key_name=keypair,security_groups=[group],instance_type=type, placement=zone,
-                                min_count=min, max_count=max, user_data=user_data, addressing_type=addressing_type)
+                                min_count=min, max_count=max, user_data=user_data, addressing_type=addressing_type, monitoring_enabled=enabled)
         self.test_resources["reservations"].append(reservation)
-        
         if (len(reservation.instances) < min) or (len(reservation.instances) > max):
             fail = "Reservation:"+str(reservation.id)+" returned "+str(len(reservation.instances))+\
                    " instances, not within min("+str(min)+") and max("+str(max)+")"
